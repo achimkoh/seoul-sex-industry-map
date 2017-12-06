@@ -11,4 +11,4 @@ http://www.ildaro.com/sub_read.html?uid=7687
 -> 궁금해서 직접 찍어볼 예정
 
 - open.seoul.go.kr
-- 건강보험심사평가원 병원정보서비스 API
+- data.go.kr 건강보험심사평가원 병원정보서비스 API
