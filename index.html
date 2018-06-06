@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <!-- should compare with other types of businesses as well, or population etc, in order to be able to hint at correlation -->
 <!-- can i find a way to compare the relative frequency? -->
-<html>
+<!-- density grid -->
+<!-- TODO: add option to toggle both density and points at once; write up; -->
+<html lang='ko'>
 <head>
     <meta charset='utf-8' />
     <title>서울시</title>
@@ -15,7 +17,7 @@
 </head>
 <body>
 <style>
-    #menu {
+    .menu {
         background: #fff;
         position: absolute;
         z-index: 1;
@@ -27,38 +29,80 @@
         font-family: 'Open Sans', sans-serif;
     }
 
-    #menu a {
+    #menu2 {
+        transform: translateX(-121px);
+    }
+    #menu3 {
+        transform: translateX(-202px);
+    }
+
+    .menu a {
         font-size: 13px;
         color: #404040;
         display: block;
         margin: 0;
         padding: 0;
         padding: 10px;
+        height: 16px;
         text-decoration: none;
         border-bottom: 1px solid rgba(0,0,0,0.25);
         text-align: center;
     }
 
-    #menu a:last-child {
+    .menu a:last-child {
         border: none;
     }
 
-    #menu a:hover {
+    .menu a:hover {
         background-color: #f8f8f8;
         color: #404040;
     }
 
-    #menu a.active {
+    .menu a.active {
         background-color: #3887be;
         color: #ffffff;
     }
 
-    #menu a.active:hover {
-        background: #3074a4;
+    :root {
+        --loans-color: magenta;
+        --clinics-color: #fc8d62;
+        --danlan-color: red;
+        --yuheung-color: #1f78b4;
+        --cafe-color: lightgray;
+        --convenience-color: limegreen;
+        --fastfood-color: yellow;
+    }
+
+    .menu a.active.loans {
+        background: var(--loans-color);
+    }
+    .menu a.active.clinics {
+        background: var(--clinics-color);
+    }
+    .menu a.active.danlan {
+        background: var(--danlan-color);
+    }
+    .menu a.active.yuheung {
+        background: var(--yuheung-color);
+    }
+    .menu a.active.cafe {
+        background: var(--cafe-color);
+        color: black;
+    }
+    .menu a.active.convenience {
+        background: var(--convenience-color);
+    }
+    .menu a.active.fastfood {
+        background: var(--fastfood-color);
+        color: black;
+    }
+    .menu a:hover {
+        filter: brightness(1.1) grayscale(0.2);
     }
 </style>
 
-<nav id="menu"></nav>
+<nav id="menu" class="menu"></nav>
+<nav id="menu2" class="menu"></nav>
 <div id='map'></div>
 
 <script>
@@ -71,8 +115,11 @@ let map = new mapboxgl.Map({
 });
 
 map.on('load', function() {
-    //Add a geojson point source.
-    //Heatmap layers also work with a vector tile source.
+    //Add geojson sources.
+    map.addSource('neighborhoods', {
+        "type": "geojson",
+        "data": "data/seoul_neighborhoods_geo_density.json"
+    });
     map.addSource('loans', {
         "type": "geojson",
         "data": "data/loans.min.geojson"
@@ -89,15 +136,24 @@ map.on('load', function() {
         "type": "geojson",
         "data": "data/yuheung.min.geojson"
     });
-    map.addSource('restaurants', {
+    map.addSource('cafe', {
         "type": "geojson",
-        "data": "data/restaurants.min.geojson"
+        "data": "data/cafe.min.geojson"
+    });
+    map.addSource('convenience', {
+        "type": "geojson",
+        "data": "data/convenience.min.geojson"
+    });
+    map.addSource('fastfood', {
+        "type": "geojson",
+        "data": "data/fastfood.min.geojson"
     });
 
+    // add layers to map.
     map.addLayer({
-        "id": "restaurants-point",
+        "id": "cafe-point",
         "type": "circle",
-        "source": "restaurants",
+        "source": "cafe",
         "minzoom": 8,
         "paint": {
             "circle-radius": {
@@ -109,19 +165,105 @@ map.on('load', function() {
                     [22, 5]
                 ]
             },
-            "circle-color": "white",
-            // "circle-stroke-color": "black",
-            // "circle-stroke-width": 1,
-            //Transition from heatmap to circle layer by zoom level
+            "circle-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--cafe-color"),
             "circle-opacity": {
                 "stops": [
-                    [7, 0.1],
-                    [13, 0.3],
-                    [15, 0.5]
+                    [7, 0.2],
+                    [13, 0.5],
+                    [15, 0.7]
                 ]
             }
         }
     });
+    map.addLayer({
+        "id": "cafe-density",
+        "type": "fill",
+        "source": "neighborhoods",
+        "paint": {
+            "fill-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--cafe-color"),
+            "fill-opacity": {
+                "property": "densityCafeNormalized",
+                "stops": [[0, 0], [0.2, 0.4], [1, 1]]
+            }            
+        }
+    });
+
+    map.addLayer({
+        "id": "convenience-point",
+        "type": "circle",
+        "source": "convenience",
+        "minzoom": 8,
+        "paint": {
+            "circle-radius": {
+                "base": 1,
+                "stops": [
+                    [10, 1],
+                    [12, 2],
+                    [16, 3],
+                    [22, 5]
+                ]
+            },
+            "circle-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--convenience-color"),
+            "circle-opacity": {
+                "stops": [
+                    [7, 0.3],
+                    [13, 0.6],
+                    [15, 0.8]
+                ]
+            }
+        }
+    });  
+    map.addLayer({
+        "id": "convenience-density",
+        "type": "fill",
+        "source": "neighborhoods",
+        "paint": {
+            "fill-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--convenience-color"),
+            "fill-opacity": {
+                "property": "densityConvenienceNormalized",
+                "stops": [[0, 0], [0.2, 0.4], [1, 1]]
+            }            
+        }
+    });
+
+    map.addLayer({
+        "id": "fastfood-point",
+        "type": "circle",
+        "source": "fastfood",
+        "minzoom": 8,
+        "paint": {
+            "circle-radius": {
+                "base": 1,
+                "stops": [
+                    [10, 1],
+                    [12, 2],
+                    [16, 3],
+                    [22, 5]
+                ]
+            },
+            "circle-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--fastfood-color"),
+            "circle-opacity": {
+                "stops": [
+                    [7, 0.4],
+                    [13, 0.7],
+                    [15, 0.9]
+                ]
+            }
+        }
+    });
+    map.addLayer({
+        "id": "fastfood-density",
+        "type": "fill",
+        "source": "neighborhoods",
+        "paint": {
+            "fill-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--fastfood-color"),
+            "fill-opacity": {
+                "property": "densityFastfoodNormalized",
+                "stops": [[0, 0], [0.2, 0.4], [1, 1]]
+            }            
+        }
+    });
+
     map.addLayer({
         "id": "loans-point",
         "type": "circle",
@@ -132,15 +274,12 @@ map.on('load', function() {
                 "base": 1,
                 "stops": [
                     [10, 1],
-                    [12, 3],
-                    [16, 5],
-                    [22, 7]
+                    [12, 2],
+                    [16, 3],
+                    [22, 5]
                 ]
             },
-            "circle-color": "#1b9e77",
-            // "circle-stroke-color": "white",
-            // "circle-stroke-width": 1,
-            //Transition from heatmap to circle layer by zoom level
+            "circle-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--loans-color"),
             "circle-opacity": {
                 "stops": [
                     [7, 0.5],
@@ -149,6 +288,19 @@ map.on('load', function() {
             }
         }
     });
+    map.addLayer({
+        "id": "loans-density",
+        "type": "fill",
+        "source": "neighborhoods",
+        "paint": {
+            "fill-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--loans-color"),
+            "fill-opacity": {
+                "property": "densityLoansNormalized",
+                "stops": [[0, 0], [0.2, 0.4], [1, 1]]
+            }            
+        }
+    });
+
     map.addLayer({
         "id": "clinics-point",
         "type": "circle",
@@ -159,15 +311,12 @@ map.on('load', function() {
                 "base": 1,
                 "stops": [
                     [10, 1],
-                    [12, 3],
-                    [16, 5],
-                    [22, 7]
+                    [12, 2],
+                    [16, 3],
+                    [22, 5]
                 ]
             },
-            "circle-color": "#fc8d62",
-            // "circle-stroke-color": "white",
-            // "circle-stroke-width": 1,
-            //Transition from heatmap to circle layer by zoom level
+            "circle-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--clinics-color"),
             "circle-opacity": {
                 "stops": [
                     [7, 0.5],
@@ -176,6 +325,19 @@ map.on('load', function() {
             }
         }
     });
+    map.addLayer({
+        "id": "clinics-density",
+        "type": "fill",
+        "source": "neighborhoods",
+        "paint": {
+            "fill-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--clinics-color"),
+            "fill-opacity": {
+                "property": "densityClinicsNormalized",
+                "stops": [[0, 0], [0.2, 0.4], [1, 1]]
+            }            
+        }
+    });
+
     map.addLayer({
         "id": "danlan-point",
         "type": "circle",
@@ -186,15 +348,12 @@ map.on('load', function() {
                 "base": 1,
                 "stops": [
                     [10, 1],
-                    [12, 3],
-                    [16, 5],
-                    [22, 7]
+                    [12, 2],
+                    [16, 3],
+                    [22, 5]
                 ]
             },
-            "circle-color": "#a6cee3",
-            // "circle-stroke-color": "white",
-            // "circle-stroke-width": 1,
-            //Transition from heatmap to circle layer by zoom level
+            "circle-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--danlan-color"),
             "circle-opacity": {
                 "stops": [
                     [7, 0.5],
@@ -203,6 +362,19 @@ map.on('load', function() {
             }
         }
     });
+    map.addLayer({
+        "id": "danlan-density",
+        "type": "fill",
+        "source": "neighborhoods",
+        "paint": {
+            "fill-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--danlan-color"),
+            "fill-opacity": {
+                "property": "densityDanlanNormalized",
+                "stops": [[0, 0], [0.2, 0.4], [1, 1]]
+            }            
+        }
+    });
+
     map.addLayer({
         "id": "yuheung-point",
         "type": "circle",
@@ -213,15 +385,12 @@ map.on('load', function() {
                 "base": 1,
                 "stops": [
                     [10, 1],
-                    [12, 3],
-                    [16, 5],
-                    [22, 7]
+                    [12, 2],
+                    [16, 3],
+                    [22, 5]
                 ]
             },
-            "circle-color": "#1f78b4",
-            // "circle-stroke-color": "white",
-            // "circle-stroke-width": 1,
-            //Transition from heatmap to circle layer by zoom level
+            "circle-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--yuheung-color"),
             "circle-opacity": {
                 "stops": [
                     [7, 0.5],
@@ -230,180 +399,36 @@ map.on('load', function() {
             }
         }
     });
-
-    // map.addLayer({
-    //     "id": "loans-heat",
-    //     "type": "heatmap",
-    //     "source": "loans",
-    //     "minzoom": 7,
-    //     "paint": {
-    //         // "heatmap-weight": {
-    //         //     "property": "mag",
-    //         //     "type": "exponential",
-    //         //     "stops": [
-    //         //         [0, 0],
-    //         //         [10, 0.5],
-    //         //         [20, 1]
-    //         //     ]
-    //         // },
-    //         "heatmap-intensity": {
-    //             "stops": [
-    //                 [10, 0.3],
-    //                 [15, 0.6]
-    //             ]
-    //         },
-    //         "heatmap-radius": {
-    //             "stops": [
-    //                 [0, 1],
-    //                 [7, 2],
-    //                 [10, 10],
-    //                 [15, 30]
-    //             ]
-    //         },
-    //         "heatmap-opacity": {
-    //             "default": 0.5,
-    //             "stops": [
-    //                 [10, 0.5],
-    //                 [15, 0]
-    //             ]
-    //         },
-    //         "heatmap-color": [
-    //             "interpolate",
-    //             ["linear"],
-    //             ["heatmap-density"],
-    //             0, "rgba(237,248,251,0)",
-    //             0.25, "rgb(178,226,226)",
-    //             0.5, "rgb(102,194,164)",
-    //             0.75, "rgb(44,162,95)",
-    //             1, "rgb(0,109,44)"
-    //         ],
-    //     }
-    // });
-    // map.addLayer({
-    //     "id": "clinics-heat",
-    //     "type": "heatmap",
-    //     "source": "clinics",
-    //     "paint": {
-    //         "heatmap-radius": 0.1,
-    //         "heatmap-opacity": {
-    //             "default": 0.5,
-    //             "stops": [
-    //                 [10, 0.5],
-    //                 [15, 0]
-    //             ]
-    //         }            
-    //     },
-    // });
-    // map.addLayer({
-    //     "id": "danlan-heat",
-    //     "type": "heatmap",
-    //     "source": "danlan",
-    //     "paint": {
-    //         "heatmap-radius": 0.1,
-    //         "heatmap-opacity": {
-    //             "default": 0.5,
-    //             "stops": [
-    //                 [10, 0.5],
-    //                 [15, 0]
-    //             ]
-    //         }            
-    //     },
-    // });
-    // map.addLayer({
-    //     "id": "yuheung-heat",
-    //     "type": "heatmap",
-    //     "source": "yuheung",
-    //     "minzoom": 7,
-    //     "paint": {
-    //         "heatmap-intensity": {
-    //             "stops": [
-    //                 [10, 0.05],
-    //                 [15, 0.2]
-    //             ]
-    //         },
-    //         "heatmap-radius": {
-    //             "stops": [
-    //                 [0, 1],
-    //                 [7, 5],
-    //                 [10, 20],
-    //                 [15, 50]
-    //             ]
-    //         },
-    //         "heatmap-opacity": {
-    //             "default": 0.5,
-    //             "stops": [
-    //                 [10, 0.5],
-    //                 [15, 0]
-    //             ]
-    //         },
-    //         "heatmap-color": [
-    //             "interpolate",
-    //             ["linear"],
-    //             ["heatmap-density"],
-    //             0, "rgba(254,237,222,0)",
-    //             0.25, "rgb(253,190,133)",
-    //             0.5, "rgb(253,141,60)",
-    //             0.75, "rgb(230,85,13)",
-    //             1, "rgb(166,54,3)"
-    //         ],
-    //     }
-    // });
-    // map.addLayer({
-    //     "id": "restaurants-heat",
-    //     "type": "heatmap",
-    //     "source": "restaurants",
-    //     "minzoom": 7,
-    //     "paint": {
-    //         // "heatmap-weight": {
-    //         //     "property": "mag",
-    //         //     "type": "exponential",
-    //         //     "stops": [
-    //         //         [0, 0],
-    //         //         [10, 0.5],
-    //         //         [20, 1]
-    //         //     ]
-    //         // },
-    //         "heatmap-intensity": {
-    //             "stops": [
-    //                 [10, 0.05],
-    //                 [15, 0.2]
-    //             ]
-    //         },
-    //         "heatmap-radius": {
-    //             "stops": [
-    //                 [0, 1],
-    //                 [7, 2],
-    //                 [10, 10],
-    //                 [15, 30]
-    //             ]
-    //         },
-    //         "heatmap-opacity": {
-    //             "default": 0.5,
-    //             "stops": [
-    //                 [10, 0.5],
-    //                 [15, 0]
-    //             ]
-    //         },
-    //         "heatmap-color": [
-    //             "interpolate",
-    //             ["linear"],
-    //             ["heatmap-density"],
-    //             0, "rgba(241,238,246,0)",
-    //             0.25, "rgb(215,181,216)",
-    //             0.5, "rgb(215,181,216)",
-    //             0.75, "rgb(221,28,119)",
-    //             1, "rgb(152,0,67)"
-    //         ],
-    //     }
-    // });
+    map.addLayer({
+        "id": "yuheung-density",
+        "type": "fill",
+        "source": "neighborhoods",
+        "paint": {
+            "fill-color": getComputedStyle(document.getElementById('menu')).getPropertyValue("--yuheung-color"),
+            "fill-opacity": {
+                "property": "densityYuheungNormalized",
+                "stops": [[0, 0], [0.2, 0.4], [1, 1]]
+            }            
+        }
+    });
 
     let toggleableLayerIds = [ 
-        'loans-point', 'clinics-point', 'danlan-point', 'yuheung-point', 'restaurants-point',
-        'loans-heat', 'clinics-heat', 'danlan-heat', 'yuheung-heat', 'restaurants-heat'
+        'loans-point', 'loans-density', 
+        'clinics-point', 'clinics-density', 
+        'danlan-point', 'danlan-density', 
+        'yuheung-point', 'yuheung-density', 
+        'cafe-point', 'cafe-density', 
+        'convenience-point', 'convenience-density', 
+        'fastfood-point', 'fastfood-density'
     ];
     let toggleableLayerTitles = [ 
-        '대부업체', '성형 의료기관', '단란주점', '유흥업소', '휴게음식점', 
-        '대부업체(열)', '성형 의료기관(열)', '단란주점(열)', '유흥업소(열)', '휴게음식점(열)'
+        '대부Loans', 'Loans(density)', 
+        '성형Plastic', 'Plastic(density)', 
+        '단란Karaoke Bar', 'Karaoke(density)', 
+        '유흥업소Ent. Bar', 'Ent.(density)', 
+        '커피숍Café', 'Café(density)', 
+        '편의점Store', 'Store(density)', 
+        '패스트푸드Fastfood', 'Fastfood(density)'
     ];
 
     for (let i = 0; i < toggleableLayerIds.length; i++) {
@@ -413,6 +438,14 @@ map.on('load', function() {
         link.href = '#';
         link.className = 'active';
         link.textContent = toggleableLayerTitles[i];
+        // add class for business type (styles color)
+        if (id.indexOf('loans') != -1) link.classList.add('loans');
+        if (id.indexOf('clinics') != -1) link.classList.add('clinics');
+        if (id.indexOf('danlan') != -1) link.classList.add('danlan');
+        if (id.indexOf('yuheung') != -1) link.classList.add('yuheung');
+        if (id.indexOf('cafe') != -1) link.classList.add('cafe');
+        if (id.indexOf('convenience') != -1) link.classList.add('convenience');
+        if (id.indexOf('fastfood') != -1) link.classList.add('fastfood');
 
         link.onclick = function (e) {
             let clickedLayer = id;
@@ -423,18 +456,22 @@ map.on('load', function() {
 
             if (visibility === 'visible') {
                 map.setLayoutProperty(clickedLayer, 'visibility', 'none');
-                this.className = '';
+                this.classList.remove('active');
             } else {
-                this.className = 'active';
+                this.classList.add('active');
                 map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
             }
         };
 
         let layers = document.getElementById('menu');
         layers.appendChild(link);
+        if (i >= 8) layers.childNodes[layers.childNodes.length-1].click();
     }
 
-    let clickableLayerIds = ['loans-point', 'clinics-point', 'danlan-point', 'yuheung-point', 'restaurants-point'];
+
+    let clickableLayerIds = [
+        'loans-point', 'clinics-point', 'danlan-point', 'yuheung-point', 'cafe-point', 'convenience-point', 'fastfood-point'
+    ];
 
     clickableLayerIds.forEach( function(value) {
         // When a click event occurs on a feature in the places layer, open a popup at the
@@ -449,7 +486,6 @@ map.on('load', function() {
                     .setHTML( JSON.stringify(point.properties, null, '<br>') )
                     .addTo(map);
             } );
-
         });
 
         // Change the cursor to a pointer when the mouse is over the places layer.
@@ -463,6 +499,35 @@ map.on('load', function() {
         });
     } );
 });
+
+// add another menu item that toggles everything
+let toggleLink = document.createElement('a');
+toggleLink.href = '#';
+toggleLink.className = 'active';
+toggleLink.textContent = '전체Toggle All';
+toggleLink.onclick = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (this.className === '') {
+        this.classList.add('active'); 
+        toggleMenu('on'); 
+    } else {
+        toggleMenu('off'); 
+        this.classList.remove('active');
+    } 
+}
+function toggleMenu(onOff) { 
+    document.getElementById('menu').childNodes.forEach( e => 
+    {
+        if (onOff === 'on' && !e.classList.contains('active') ) e.click(); 
+        else if (onOff === 'off' && e.classList.contains('active') ) e.click(); 
+    });
+}
+let layers = document.getElementById('menu2');
+layers.appendChild(toggleLink);
+
+
+
 </script>
 
 </body>
